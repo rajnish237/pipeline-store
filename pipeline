@@ -1,0 +1,42 @@
+pipeline{
+  agent any
+  stages{
+    stage ("PULL") 
+      {
+       steps { 
+          git 'https://github.com/cloudmaster2025/sonar.git'
+           } 
+        }
+     stage ("BUILD") 
+      {
+       steps { 
+          sh '/opt/maven/bin/mvn  clean package'
+           } 
+        }
+
+     stage ("TEST")
+      {
+       steps {
+       withSonarQubeEnv(installationName: 'sonar-install', credentialsId: 'sonar-id') {
+         sh  '''/opt/maven/bin/mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+  	      -Dsonar.projectKey=my-app \
+  	      -Dsonar.projectName='my-app' ''' 
+            }
+           }
+        }  
+      stage ("Quality-Gate") 
+        {
+         steps {
+           timeout(time: 10, unit: 'SECONDS') {
+             waitForQualityGate abortPipeline: true, credentialsId: 'sonar-id'
+            }
+         }
+        }
+    stage ("DEPLOY") 
+      {
+       steps { 
+          echo 'Deployment successfull'
+           } 
+        }
+     } 
+   }
